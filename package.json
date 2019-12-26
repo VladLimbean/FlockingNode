@@ -1,0 +1,15 @@
+{
+  "name": "simon",
+  "version": "1.0.0",
+  "description": "Boids implementation",
+  "main": "main.js",
+  "scripts": {
+    "start": "export NODE_ENV=development || SET NODE_ENV=development && electron . --enable-logging",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vlad Limbean",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^7.1.7"
+  }
+}
