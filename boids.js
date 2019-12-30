@@ -2,19 +2,19 @@
 function boidProcess(processing) {
   
   // process variables
-  var SEPARATION_RANGE = 10.0;
-  var ALIGNMENT_RANGE = 30.0;
-  var COHESION_RANGE = 15.0;
-  var SEPARATION_STRENGH = 15.0;
-  var ALIGNMENT_STRENGH = 0.01;
-  var COHESION_STRENGH = 0.01;
+  var SEPARATION_RANGE   = 10.0;
+  var ALIGNMENT_RANGE    = 10.0;
+  var COHESION_RANGE     = 15.0;
+  var SEPARATION_STRENGH = 55.0;
+  var ALIGNMENT_STRENGH  = 0.11;
+  var COHESION_STRENGH   = 0.11;
   
-  var BOUNDARY_SEPARATION_RANGE = 20.0;
-  var BOUNDARY_SEPARATION_STRENGTH = 5.0;
+  var BOUNDARY_SEPARATION_RANGE    = 128.0;
+  var BOUNDARY_SEPARATION_STRENGTH = 255.0;
   
-  var MAX_VELOCITY = 5.0;
+  var MAX_VELOCITY = 50.0;
   
-  var N = 2000; // number of boids
+  var N = 1200; // number of boids
   var positions;
   var velocities;
   var forces;
@@ -27,11 +27,31 @@ function boidProcess(processing) {
   var TWO_PI;
   var height;
   var width;
+
+  // canvas
+  var canvas_width  = 640;
+  var canvas_height = 640;
+  // Randomized circle variables
+  var C_max_radius = 55;
+  var C1;
+  var C2;
+  //initial positions and radius
+  var x1 = processing.random(100, 540);
+  var y1 = processing.random(100, 540);
+  var x2 = processing.random(100, 540);
+  var y2 = processing.random(100, 540);
+
+  var targetRad1 = processing.ceil(processing.random(C_max_radius));
+  var targetRad2 = processing.ceil(processing.random(C_max_radius));
+
+  var interval_step = 15000; //milliseconds
+  var previous_step = 0;
   
   // init
   function setup() {
     console.log('setting up canvas');
-    processing.size(640, 640);
+    processing.size(canvas_width, canvas_height);
+    processing.frameRate(30);
     // storing processing instance variables and constants
     TWO_PI = processing.TWO_PI;
     height = processing.height;
@@ -62,7 +82,7 @@ function boidProcess(processing) {
 
   function render() {
     processing.background(255);
-    processing.noFill();
+    processing.fill(150);
     for (var i = 0; i < N; i++) {
       var pos = positions[i];
       processing.ellipse(pos.x, pos.y, 5, 5); 
@@ -75,6 +95,10 @@ function boidProcess(processing) {
   }
 
   function update() {
+    // Vlad's mod
+    __reroll();
+    modifyCircles();
+    //
     updateGridBucket();
     calcSeparation();
     calcAlignment();
@@ -131,8 +155,8 @@ function boidProcess(processing) {
         calcDistance: function(p) {return processing.max(height - p.y, 0.0);},
         calcNormal: function(p) {return new p5.Vector(0.0, -1.0);}
       },
-      new CircleBoundary(new p5.Vector(250, 250), 100),
-      new CircleBoundary(new p5.Vector(450, 450), 75)
+      C1 = new CircleBoundary(new p5.Vector(x1, y1), C_max_radius),
+      C2 = new CircleBoundary(new p5.Vector(x2, y2), C_max_radius)
     ];
     
     var x = processing.ceil(width / BOUNDARY_SEPARATION_RANGE) + 2;
@@ -227,13 +251,17 @@ function boidProcess(processing) {
   }
   
   function calcAlignment() {
-    for (var i = 0; i < N; i++) {
+    for (var i = 0; i < N; i++) 
+    {
       var posi = positions[i];
       var sumW = 0;
       var sumVel = new p5.Vector(0.0, 0.0);
       var bucket = getBucketIdx(i);
-      for (var xi = bucket.x - 1; xi <= bucket.x + 1; xi++) {
-        for (var yi = bucket.y - 1; yi <= bucket.y + 1; yi++) {
+
+      for (var xi = bucket.x - 1; xi <= bucket.x + 1; xi++) 
+      {
+        for (var yi = bucket.y - 1; yi <= bucket.y + 1; yi++) 
+        {
           gridBucket[xi][yi].forEach(function(j) {
             if (i === j) return;
             var posj = positions[j];
@@ -245,10 +273,10 @@ function boidProcess(processing) {
           });
         }
       }
-    if (sumW < 0.001) continue;
-    sumVel.div(sumW);
-    var force = p5.Vector.sub(sumVel, velocities[i]);
-    forces[i].add(force.mult(ALIGNMENT_STRENGH));
+      if (sumW < 0.001) continue;
+      sumVel.div(sumW);
+      var force = p5.Vector.sub(sumVel, velocities[i]);
+      forces[i].add(force.mult(ALIGNMENT_STRENGH));
     }
   }
   
@@ -257,6 +285,7 @@ function boidProcess(processing) {
       var posi = positions[i];
       var force = new p5.Vector(0.0, 0.0);
       var bucket = getBucketIdx(i);
+
       for (var xi = bucket.x - 1; xi <= bucket.x + 1; xi++) {
         for (var yi = bucket.y - 1; yi <= bucket.y + 1; yi++) {
           gridBucket[xi][yi].forEach(function(j) {
@@ -279,6 +308,7 @@ function boidProcess(processing) {
       var force = new p5.Vector(0.0, 0.0);
       var bucket = getBoundaryBucketIdx(i);
       var checkedBoundaries = [];
+
       for (var xi = bucket.x - 1; xi <= bucket.x + 1; xi++) {
         for (var yi = bucket.y - 1; yi <= bucket.y + 1; yi++) {
           boundaryBucket[xi][yi].forEach(function(boundary) {
@@ -294,6 +324,69 @@ function boidProcess(processing) {
       forces[i].add(force.mult(BOUNDARY_SEPARATION_STRENGTH));
     }
   }
+
+  function __reroll(){
+    let millis = processing.millis();
+    if (millis - previous_step > interval_step ) {
+      console.log('resetting targets');
+      targetRad1 = processing.ceil(processing.random(C_max_radius));
+      targetRad2 = processing.ceil(processing.random(C_max_radius));
+
+      x1 = processing.random(100, 540);
+      x2 = processing.random(100, 540);
+      y1 = processing.random(100, 540);
+      y2 = processing.random(100, 540);
+
+      previous_step = processing.millis();
+    }
+  }
+
+  /**
+   * This function modifies the diameter and position of two previously static
+   * circle boundary objects.
+   * 
+   * They are referenced as C1, C2 respectively
+   */
+  function modifyCircles()
+  {
+    changeRadius(C1, targetRad1);
+    changeRadius(C2, targetRad2);
+    changePosition(C1, x1, y1);
+    changePosition(C2, x2, y2);
+
+  }
+
+  function changePosition(CircleBoundaryObject, targetX, targetY) {
+    let currentX = CircleBoundaryObject.center.x;
+    let currentY = CircleBoundaryObject.center.y;
+
+    if (processing.abs(currentX - targetX) > 0.01)
+    {
+      CircleBoundaryObject.center.x += (targetX - currentX) * 0.05;
+    }
+    if (processing.abs(currentY - targetY) > 0.01)
+    {
+      CircleBoundaryObject.center.y += (targetY - currentY) * 0.05;
+    }
+  }
+
+  function changeRadius(CircleBoundaryObject, targetRad) 
+  { 
+    let currentRadius = CircleBoundaryObject.radius;
+    let ascend = targetRad > currentRadius;
+
+    if (processing.abs(CircleBoundaryObject.radius - targetRad) > 0.01)
+    {
+      currentRadius = CircleBoundaryObject.radius;
+      
+      if (ascend) {
+        CircleBoundaryObject.radius = CircleBoundaryObject.radius + (targetRad - currentRadius) * 0.05;  
+      } 
+      else {
+        CircleBoundaryObject.radius = CircleBoundaryObject.radius - (currentRadius - targetRad) * 0.05;
+      }
+    }
+  }
   
   function move() {
     var currentMillis = processing.millis();
@@ -304,6 +397,7 @@ function boidProcess(processing) {
       positions[i].add(p5.Vector.mult(velocities[i], dt));
       forces[i].set(0.0, 0.0);
     }
+
     prevMillis = currentMillis;
   }
   
