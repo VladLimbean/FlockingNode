@@ -1,7 +1,7 @@
 # FlockingNode
 Flocking Boids implementation ported to Node.js
 
-![alt-text](https://media.giphy.com/media/fXWMU4X7ALGqXz0a4H/giphy.gif)
+![alt-text](./sample.gif)
 
 # Usage
 
